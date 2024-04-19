@@ -1,20 +1,20 @@
-'use strict'
+"use strict";
 
-import { toString } from 'mdast-util-to-string'
+import { toString } from "mdast-util-to-string";
 
 /**
- * 
- * @param {any[]} array 
- * @param {(arg0: any, arg1?: any) => boolean} fn 
- * @returns 
+ *
+ * @param {any[]} array
+ * @param {(arg0: any, arg1?: any) => boolean} fn
+ * @returns
  */
-function findIndex (array, fn) {
+function findIndex(array, fn) {
   for (var i = 0; i < array.length; i++) {
     if (fn(array[i], i)) {
-      return i
+      return i;
     }
   }
-  return -1
+  return -1;
 }
 
 /**
@@ -32,6 +32,7 @@ function findIndex (array, fn) {
  * @param {string} targetHeadingText The heading to look for in the target ast
  * @param {Root} targetAst The target markdown document, as an mdast
  * @param {Root} toInjectAst The source markdown to be injected into the target, also as an mdast.
+ * @param {boolean} stopAtSameDepth Whether to inject right before the same depth heading, or to stop at any heading
  * @param {Matcher=} _matcher function that determines what header text strings are equal (ex. includes, ===, startsWith, ecc...)
  * @return {boolean} whether the specified section was found and content inserted
  * @example
@@ -56,37 +57,50 @@ function findIndex (array, fn) {
  * //
  * // Blargh
  */
-export default function inject(targetHeadingText, targetAst, toInjectAst, _matcher) {
-  let matcher = (_matcher || defaultMatcher)
+export default function inject(
+  targetHeadingText,
+  targetAst,
+  toInjectAst,
+  stopAtSameDepth,
+  _matcher
+) {
+  let matcher = _matcher || defaultMatcher;
   // find the heading after which to inject the new content
   var head = findIndex(targetAst.children, function (node) {
-    return isHeading(matcher, node, targetHeadingText)
-  })
+    return isHeading(matcher, node, targetHeadingText);
+  });
   var heading = targetAst.children[head];
 
-  if (head === -1 || heading.type !== 'heading') {
-    return false
+  if (head === -1 || heading.type !== "heading") {
+    return false;
   }
 
   // find the next heading at the same heading level, which is where we'll
   // STOP inserting
-  var depth = heading.depth
+  var depth = heading.depth;
   var nextHead = findIndex(targetAst.children, function (node, i) {
-    return isHeading(matcher, node, '', depth) && i > head
-  })
+    return (
+      isHeading(matcher, node, "", stopAtSameDepth ? depth : undefined) &&
+      i > head
+    );
+  });
 
   // bump heading levels so they fall within the parent documents' heirarchy
-  bumpHeadings(toInjectAst, depth)
+  bumpHeadings(toInjectAst, depth);
 
   // insert content
-  targetAst.children.splice((nextHead >= 0 ? nextHead : targetAst.children.length), 0, ...toInjectAst.children)
+  targetAst.children.splice(
+    nextHead >= 0 ? nextHead : targetAst.children.length,
+    0,
+    ...toInjectAst.children
+  );
 
-  return true
+  return true;
 }
 
 /** @type {Matcher} */
 export function defaultMatcher(headerText, searchedText) {
-  return headerText===searchedText;
+  return headerText === searchedText;
 }
 
 /** @type {Matcher} */
@@ -102,64 +116,64 @@ export function startsWithMatcher(headerText, searchedText) {
 /**
  * Test if the given node is a heading, optionally with the given text,
  * or <= the given depth
- * @param {Matcher} matcher 
- * @param {import('mdast').Content} node 
- * @param {string} text 
- * @param {number=} depth 
- * @returns 
+ * @param {Matcher} matcher
+ * @param {import('mdast').Content} node
+ * @param {string} text
+ * @param {number=} depth
+ * @returns
  */
 function isHeading(matcher, node, text, depth) {
-  if (node.type !== 'heading') {
-    return false
+  if (node.type !== "heading") {
+    return false;
   }
 
   if (text) {
-    var headingText = toString(node)
-    return matcher(headingText.trim().toLowerCase(), text.trim().toLowerCase())
+    var headingText = toString(node);
+    return matcher(headingText.trim().toLowerCase(), text.trim().toLowerCase());
   }
 
   if (depth) {
-    return node.depth <= depth
+    return node.depth <= depth;
   }
 
-  return true
+  return true;
 }
 
-var MAX_HEADING_DEPTH = 99999
+var MAX_HEADING_DEPTH = 99999;
 
 /**
- * @param {Root} root 
- * @param {number} baseDepth 
+ * @param {Root} root
+ * @param {number} baseDepth
  */
-function bumpHeadings (root, baseDepth) {
-  var headings = /** @type {import('mdast').Heading[]} */ ([])
-  
+function bumpHeadings(root, baseDepth) {
+  var headings = /** @type {import('mdast').Heading[]} */ ([]);
+
   walk(root, function (node) {
-    if (node.type === 'heading') {
-      headings.push(node)
+    if (node.type === "heading") {
+      headings.push(node);
     }
-  })
+  });
 
   var minDepth = headings.reduce(function (memo, h) {
-    return Math.min(memo, h.depth)
-  }, MAX_HEADING_DEPTH)
+    return Math.min(memo, h.depth);
+  }, MAX_HEADING_DEPTH);
 
-  var diff = baseDepth + 1 - minDepth
+  var diff = baseDepth + 1 - minDepth;
 
   headings.forEach(function (h) {
-    h.depth += diff
-  })
+    h.depth += diff;
+  });
 }
 
 /**
- * @param {import('mdast').Parent} node 
- * @param {(arg0: any) => void} fn 
+ * @param {import('mdast').Parent} node
+ * @param {(arg0: any) => void} fn
  */
-function walk (node, fn) {
-  fn(node)
+function walk(node, fn) {
+  fn(node);
   if (node.children) {
     node.children.forEach(function (n) {
-      walk(/** @type {import('mdast').Parent} */ (n), fn)
-    })
+      walk(/** @type {import('mdast').Parent} */ (n), fn);
+    });
   }
 }

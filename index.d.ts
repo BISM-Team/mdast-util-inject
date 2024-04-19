@@ -12,6 +12,7 @@
  * @param {string} targetHeadingText The heading to look for in the target ast
  * @param {Root} targetAst The target markdown document, as an mdast
  * @param {Root} toInjectAst The source markdown to be injected into the target, also as an mdast.
+ * @param {boolean} stopAtSameDepth Whether to inject right before the same depth heading, or to stop at any heading
  * @param {Matcher=} _matcher function that determines what header text strings are equal (ex. includes, ===, startsWith, ecc...)
  * @return {boolean} whether the specified section was found and content inserted
  * @example
@@ -36,7 +37,7 @@
  * //
  * // Blargh
  */
-export default function inject(targetHeadingText: string, targetAst: Root, toInjectAst: Root, _matcher?: Matcher | undefined): boolean;
+export default function inject(targetHeadingText: string, targetAst: Root, toInjectAst: Root, stopAtSameDepth: boolean, _matcher?: Matcher | undefined): boolean;
 export function defaultMatcher(headerText: string, searchedText: string): boolean;
 export function includesMatcher(headerText: string, searchedText: string): boolean;
 export function startsWithMatcher(headerText: string, searchedText: string): boolean;
